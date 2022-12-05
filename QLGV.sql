@@ -292,80 +292,81 @@ ALTER TABLE LOP ADD	CONSTRAINT FK_MAGVCN FOREIGN KEY (MAGVCN) REFERENCES GIAOVIE
 ALTER TABLE HOCVIEN ADD CONSTRAINT FK_LOP FOREIGN KEY (MALOP) REFERENCES LOP(MALOP)
 ALTER TABLE GIAOVIEN ADD CONSTRAINT FK_MAKHOA FOREIGN KEY (MAKHOA) REFERENCES KHOA(MAKHOA)
 ALTER TABLE GIANGDAY ADD CONSTRAINT FK_MAMH FOREIGN KEY (MAMH) REFERENCES MONHOC(MAMH)
-ALTER TABLE KHOA ADD CONSTRAINT FK_MAGV FOREIGN KEY (MAGV) REFERENCES GIAOVIEN(MAGV)
+ALTER TABLE GIANGDAY ADD CONSTRAINT FK_MAGV FOREIGN KEY (MAGV) REFERENCES GIAOVIEN(MAGV)
 ALTER TABLE MONHOC ADD CONSTRAINT FK_MAKHOA_2 FOREIGN KEY (MAKHOA) REFERENCES KHOA(MAKHOA)
 ALTER TABLE DIEUKIEN ADD CONSTRAINT FK_MAMH_TRUOC FOREIGN KEY (MAMH_TRUOC) REFERENCES MONHOC(MAMH)
 ALTER TABLE DIEUKIEN ADD CONSTRAINT FK_MAMH_2 FOREIGN KEY (MAMH) REFERENCES MONHOC(MAMH)
 ALTER TABLE KETQUATHI ADD CONSTRAINT FK_MAHV FOREIGN KEY (MAHV) REFERENCES HOCVIEN(MAHV)
+
 -- Tuan 1
--- CAU 1 --
+-- CAU 1. Tạo quan hệ và khai báo tất cả các ràng buộc khóa chính, khóa ngoại. Thêm vào 3 thuộc tính GHICHU, DIEMTB, XEPLOAI cho quan hệ HOCVIEN.
 ALTER TABLE HOCVIEN ADD GHICHU varchar(40)
 ALTER TABLE HOCVIEN ADD XEPLOAI char(2)
 ALTER TABLE HOCVIEN ADD DIEMTB numeric(4,2)
 
--- CAU 2 --
+-- CAU 2. Mã học viên là một chuỗi 5 ký tự, 3 ký tự đầu là mã lớp, 2 ký tự cuối cùng là số thứ tự học viên trong lớp. VD: “K1101”
 ALTER TABLE HOCVIEN 
 ADD CONSTRAINT CHECK_MAHV 
 CHECK(SUBSTRING(MAHV,1 ,3) = MALOP AND ISNUMERIC(SUBSTRING(MAHV, 4, 2)) = 1)
--- CAU 3 --
+-- CAU 3. Thuộc tính GIOITINH chỉ có giá trị là “Nam” hoặc “Nu”.
 ALTER TABLE HOCVIEN 
 ADD CONSTRAINT CHECK_GIOITINHHV 
 CHECK(GIOITINH IN('Nam', 'Nu'))
 ALTER TABLE GIAOVIEN 
 ADD CONSTRAINT CHECK_GIOITINHGV 
 CHECK(GIOITINH IN('Nam', 'Nu'))
--- Cau 4 --
+-- Cau 4. Điểm số của một lần thi có giá trị từ 0 đến 10 và cần lưu đến 2 số lẽ (VD: 6.22).
 ALTER TABLE KETQUATHI 
 ADD CONSTRAINT CHECK_KQTHI 
 CHECK( DIEM BETWEEN 0 AND 10 AND RIGHT(CAST(DIEM AS varchar), 3) LIKE '.__')
--- Cau 5 --
+-- Cau 5. Kết quả thi là “Dat” nếu điểm từ 5 đến 10 và “Khong dat” nếu điểm nhỏ hơn 5.
 ALTER TABLE KETQUATHI 
 ADD CONSTRAINT CHECK_KETQUA 
 CHECK((KQUA = 'Dat' AND DIEM BETWEEN 5 AND 10) OR (KQUA = 'Khong dat' AND DIEM < 5))
--- Cau 6 --
+-- Cau 6. Học viên thi một môn tối đa 3 lần.
 ALTER TABLE KETQUATHI 
 ADD CONSTRAINT CHECK_LANTHI CHECK(LANTHI <= 3)
--- Cau 7 --
+-- Cau 7. Học kỳ chỉ có giá trị từ 1 đến 3.
 ALTER TABLE GIANGDAY 
 ADD CONSTRAINT CHECK_HOCKY CHECK(HOCKY BETWEEN 1 AND 3)
---  Cau 8 --
+--  Cau 8. Học vị của giáo viên chỉ có thể là “CN”, “KS”, “Ths”, ”TS”, ”PTS”.
 ALTER TABLE GIAOVIEN 
 ADD CONSTRAINT CHECK_HOCVI CHECK (HOCVI IN ('CN', 'KS', 'Ths', 'TS', 'PTS'))
 
 --Tuan 2 Phan 1 Cau 11 - 14
---Cau 11
+--Cau 11. Học viên ít nhất là 18 tuổi.
 ALTER TABLE HOCVIEN 
 ADD CONSTRAINT CHECK_TUOI CHECK (YEAR(GETDATE()) - YEAR(NGSINH) >= 18)
---Cau 12
+--Cau 12. Giảng dạy một môn học ngày bắt đầu (TUNGAY) phải nhỏ hơn ngày kết thúc (DENNGAY).
 ALTER TABLE GIANGDAY 
 ADD CONSTRAINT CHECK_NGAYDAY CHECK (TUNGAY < DENNGAY)
---Cau 13
+--Cau 13. Giáo viên khi vào làm ít nhất là 22 tuổi.
 ALTER TABLE GIAOVIEN 
 ADD CONSTRAINT CHECK_TUOIGIAOVIEN CHECK (YEAR(GETDATE()) - YEAR(NGSINH) >= 22)
---Cau 14
+--Cau 14. Tất cả các môn học đều có số tín chỉ lý thuyết và tín chỉ thực hành chênh lệch nhau không quá 5.
 ALTER TABLE MONHOC 
 ADD CONSTRAINT CHECK_TINCHI CHECK (TCLT - TCLT <=5)
 
 --Tuan 2 Phan 3 Cau 1 - 5
---Cau 1
+--Cau 1. In ra danh sách (mã học viên, họ tên, ngày sinh, mã lớp) lớp trưởng của các lớp.
 SELECT HOCVIEN.MAHV,(HO +' '+ TEN) HOTEN, NGSINH, LOP.MALOP 
 FROM HOCVIEN, LOP 
 WHERE HOCVIEN.MAHV = LOP.TRGLOP
---Cau 2
+--Cau 2. In ra bảng điểm khi thi (mã học viên, họ tên , lần thi, điểm số) môn CTRR của lớp “K12”, sắp xếp theo tên, họ học viên.
 SELECT HOCVIEN.MAHV,(HO+' '+TEN) HOTEN, LANTHI, DIEM 
 FROM KETQUATHI, HOCVIEN  
 WHERE 
 	KETQUATHI.MAHV = HOCVIEN.MAHV 
 	AND MAMH = 'CTRR' AND MALOP = 'K12' 
-ORDER BY TEN,HO
---Cau 3
+ORDER BY HO, TEN
+--Cau 3. In ra danh sách những học viên (mã học viên, họ tên) và những môn học mà học viên đó thi lần thứ nhất đã đạt.
 SELECT distinct HOCVIEN.MAHV,(HO+' '+TEN) HOTEN, TENMH 
 FROM HOCVIEN, KETQUATHI, MONHOC 
 WHERE 
 	KETQUATHI.MAHV = HOCVIEN.MAHV 
 	AND KETQUATHI.MAMH = MONHOC.MAMH
 	AND LANTHI = 1 AND KQUA = 'Dat'
---Cau 4
+--Cau 4. In ra danh sách học viên (mã học viên, họ tên) của lớp “K11” thi môn CTRR không đạt (ở lần thi 1).
 SELECT HOCVIEN.MAHV,(HO+' '+TEN) HOTEN, TENMH 
 FROM HOCVIEN, KETQUATHI, MONHOC 
 WHERE 
@@ -374,7 +375,7 @@ WHERE
 	AND LANTHI = 1 
 	AND KQUA = 'Khong Dat' 
 	AND TENMH = 'CTRR'
---Cau5
+--Cau 5. * Danh sách học viên (mã học viên, họ tên) của lớp “K” thi môn CTRR không đạt (ở tất cả các lần thi).
 SELECT HOCVIEN.MAHV, (HO + ' '+ TEN) HOTEN 
 FROM HOCVIEN, KETQUATHI, MONHOC 
 WHERE 
@@ -385,29 +386,28 @@ WHERE
 
 -- Tuan 3
 -- Phan 2 cau 1 - 4
--- Cau 1
-UPDATE HESO
-FROM GIAOVIEN, KHOA 
+-- Cau 1. Tăng hệ số lương thêm 0.2 cho những giáo viên là trưởng khoa.
+UPDATE GIAOVIEN
 SET HESO = HESO + 0.2 
 WHERE 
 	MAGV IN (SELECT TRGKHOA FROM KHOA)
--- Cau 2
-UPDATE HocVien
-SET DIEMTB =
+-- Cau 2. Cập nhật giá trị điểm trung bình tất cả các môn học (DIEMTB) của mỗi học viên (tất cả các môn học đều có hệ số 1 và nếu học viên thi một môn nhiều lần, chỉ lấy điểm của lần thi sau cùng).
+UPDATE HOCVIEN
+SET DIEMTB = 
 (
 	SELECT AVG(DIEM)
 	FROM KETQUATHI
 	WHERE 
 		LANTHI = (
 			SELECT MAX(LANTHI) 
-			FROM KETQUATHI 
+			FROM KETQUATHI KQ
 			WHERE MAHV = KETQUATHI.MAHV 
 			GROUP BY MAHV
 			)
 	GROUP BY MAHV
 	HAVING MAHV = HOCVIEN.MAHV
 )
--- Cau 3
+-- Cau 3.Cập nhật giá trị cho cột GHICHU là “Cam thi” đối với trường hợp: học viên có một môn bất kỳ thi lần thứ 3 dưới 5 điểm. 
 UPDATE HOCVIEN
 SET GHICHU = 'Cam thi'
 WHERE MAHV IN 
@@ -418,7 +418,12 @@ WHERE MAHV IN
 		LANTHI = 3 
 		AND DIEM < 5
 )
--- Cau 4
+-- Cau 4. Cập nhật giá trị cho cột XEPLOAI trong quan hệ HOCVIEN như sau:
+		--o Nếu DIEMTB  9 thì XEPLOAI =”XS”
+		--o Nếu 8  DIEMTB < 9 thì XEPLOAI = “G”
+		--o Nếu 6.5  DIEMTB < 8 thì XEPLOAI = “K”
+		--o Nếu 5  DIEMTB < 6.5 thì XEPLOAI = “TB”
+		--o Nếu DIEMTB < 5 thì XEPLOAI = ”Y”
 UPDATE HOCVIEN
 SET XEPLOAI = 
 (
@@ -431,7 +436,7 @@ SET XEPLOAI =
 	END
 )
 -- Phan 3 cau 6 - 10
--- Cau 6
+-- Cau 6. Tìm tên những môn học mà giáo viên có tên “Tran Tam Thanh” dạy trong học kỳ 1 năm 2006.
 SELECT DISTINCT TENMH 
 FROM GIANGDAY, GIAOVIEN, MONHOC 
 WHERE 
@@ -440,7 +445,7 @@ WHERE
 	AND GIAOVIEN.HOTEN = 'Tran Thanh Tam' 
 	AND HOCKY = 1 
 	AND NAM = 2006
--- Cau 7
+-- Cau 7. Tìm những môn học (mã môn học, tên môn học) mà giáo viên chủ nhiệm lớp “K11” dạy trong học kỳ 1 năm 2006.
 SELECT MONHOC.MAMH, TENMH 
 FROM MONHOC, LOP, GIANGDAY
 WHERE 
@@ -448,7 +453,7 @@ WHERE
 	AND GIANGDAY.MALOP = 'K11' 
 	AND HOCKY = 1 
 	AND NAM =2006
--- Cau 8
+-- Cau 8.Tìm họ tên lớp trưởng của các lớp mà giáo viên có tên “Nguyen To Lan” dạy môn “Co So Du Lieu”.
 SELECT (HO+' '+TEN) HOTEN 
 FROM LOP, GIAOVIEN, GIANGDAY, MONHOC, HOCVIEN
 WHERE 
@@ -458,7 +463,7 @@ WHERE
 	AND GIANGDAY.MAGV = GIAOVIEN.MAGV
 	AND GIAOVIEN.HOTEN = 'Nguyen To Lan'
 	AND MONHOC.TENMH = 'Co So Du Lieu'
--- Cau 9
+-- Cau 9. In ra danh sách những môn học (mã môn học, tên môn học) phải học liền trước môn “Co So Du Lieu”.
 SELECT MONHOC.MAMH, TENMH 
 FROM MONHOC JOIN DIEUKIEN ON MONHOC.MAMH=DIEUKIEN.MAMH_TRUOC
 WHERE DIEUKIEN.MAMH =
@@ -467,7 +472,7 @@ WHERE DIEUKIEN.MAMH =
 	  FROM MONHOC
 	  WHERE TENMH = 'Co So Du Lieu'
 	  )
--- Cau 10
+-- Cau 10. Môn “Cau Truc Roi Rac” là môn bắt buộc phải học liền trước những môn học (mã môn học, tên môn học) nào.
 SELECT MONHOC.MAMH, TENMH 
 FROM DIEUKIEN, MONHOC
 WHERE 
@@ -475,7 +480,7 @@ WHERE
 	AND DIEUKIEN.MAMH = MONHOC.MAMH
 	AND MONHOC.TENMH = 'Co So Du Lieu'
 -- Phan 3 cau 11 -- 18
--- Cau 11
+-- Cau 11.Tìm họ tên giáo viên dạy môn CTRR cho cả hai lớp “K11” và “K12” trong cùng học kỳ 1 năm 2006.
 SELECT HOTEN 
 FROM GIAOVIEN, GIANGDAY
 WHERE 
@@ -484,7 +489,7 @@ WHERE
 	AND GIANGDAY.MALOP = 'K12'
 	AND HOCKY = 1 
 	AND NAM = 2006
--- Cau 12
+-- Cau 12. Tìm những học viên (mã học viên, họ tên) thi không đạt môn CSDL ở lần thi thứ 1 nhưng chưa thi lại môn này.
 SELECT HOCVIEN.MAHV, (HO+' '+TEN) HOTEN
 FROM HOCVIEN, KETQUATHI
 WHERE
@@ -500,7 +505,7 @@ WHERE
 			AND KETQUATHI.MAHV = HOCVIEN.MAHV
 			)
 
--- Cau 13
+-- Cau 13. Tìm giáo viên (mã giáo viên, họ tên) không được phân công giảng dạy bất kỳ môn học nào.
 SELECT MAGV, HOTEN
 FROM GIAOVIEN
 WHERE MAGV NOT IN (
@@ -508,7 +513,7 @@ WHERE MAGV NOT IN (
 	FROM GIANGDAY
 	)
 
--- Cau 14
+-- Cau 14. Tìm giáo viên (mã giáo viên, họ tên) không được phân công giảng dạy bất kỳ môn học nào thuộc khoa giáo viên đó phụ trách.
 SELECT MAGV, HOTEN
 FROM GIAOVIEN
 WHERE NOT EXISTS
@@ -525,7 +530,7 @@ WHERE NOT EXISTS
 	)
 )
 
--- Cau 15
+-- Cau 15. Tìm họ tên các học viên thuộc lớp “K11” thi một môn bất kỳ quá 3 lần vẫn “Khong dat” hoặc thi lần thứ 2 môn CTRR được 5 điểm.
 SELECT DISTINCT (HO+' '+TEN) HOTEN
 FROM HOCVIEN, KETQUATHI
 WHERE
@@ -542,7 +547,7 @@ WHERE
 		)
 	)
 
--- Câu 16
+-- Câu 16. Tìm họ tên giáo viên dạy môn CTRR cho ít nhất hai lớp trong cùng một học kỳ của một năm học.
 SELECT HOTEN
 FROM GIAOVIEN, GIANGDAY
 WHERE
@@ -551,7 +556,7 @@ WHERE
 GROUP BY GIAOVIEN.MAGV, HOTEN, HOCKY
 HAVING COUNT(*) >= 2
 
--- Câu 17
+-- Câu 17. Danh sách học viên và điểm thi môn CSDL (chỉ lấy điểm của lần thi sau cùng).
 SELECT HOCVIEN.*, DIEM AS 'Điểm thi CSDL sau cùng'
 FROM HOCVIEN, KETQUATHI
 WHERE
@@ -567,7 +572,7 @@ WHERE
 		GROUP BY MAHV
 	)
 
--- Câu 18
+-- Câu 18. Danh sách học viên và điểm thi môn “Co So Du Lieu” (chỉ lấy điểm cao nhất của các lần thi).
 SELECT HOCVIEN.*, DIEM AS 'Điểm thi CSDL cao nhất'
 FROM HOCVIEN, KETQUATHI, MONHOC
 WHERE
@@ -586,36 +591,36 @@ WHERE
 	)
 
 -- Tuan 4
--- Cau 19 - 25
--- Cau 19
+-- Phan 3 Cau 19 - 25
+-- Cau 19. Khoa nào (mã khoa, tên khoa) được thành lập sớm nhất.
 select MAKHOA, TENKHOA
 from KHOA
 where NGTLAP <= all(
 	select NGTLAP
 	from KHOA
 )
--- Cau 20
+-- Cau 20. Có bao nhiêu giáo viên có học hàm là “GS” hoặc “PGS”.
 select count(*)
 from GIAOVIEN
 where 
 	HOCHAM in ('GS', 'PGS')
--- Cau 21
+-- Cau 21. Thống kê có bao nhiêu giáo viên có học vị là “CN”, “KS”, “Ths”, “TS”, “PTS” trong mỗi khoa.
 select MAKHOA, HOCVI, count(*)
 from GIAOVIEN
 group by MAKHOA, HOCVI
 order by MAKHOA
--- Cau 22
+-- Cau 22. Mỗi môn học thống kê số lượng học viên theo kết quả (đạt và không đạt).
 select MAMH, KQUA, count(*)
 from KETQUATHI
 group by MAMH, KQUA
 order by MAMH
--- Cau 23
+-- Cau 23. Tìm giáo viên (mã giáo viên, họ tên) là giáo viên chủ nhiệm của một lớp, đồng thời dạy cho lớp đó ít nhất một môn học.
 select GIAOVIEN.MAGV, HOTEN
 from GIAOVIEN JOIN LOP ON GIAOVIEN.MAGV = LOP.MAGVCN, GIANGDAY
 where 
 	GIANGDAY.MALOP = LOP.MALOP
 	and GIANGDAY.MAGV = GIAOVIEN.MAGV
--- Cau 24
+-- Cau 24. Tìm họ tên lớp trưởng của lớp có sỉ số cao nhất.
 select HO +' '+ TEN as 'Họ tên lớp trưởng lớp có sĩ số lớn nhất'
 from HOCVIEN, LOP
 where 
@@ -624,7 +629,7 @@ where
 		select siso 
 		from LOP
 	)
--- Cau 25
+-- Cau 25. * Tìm họ tên những LOPTRG thi không đạt quá 3 môn (mỗi môn đều thi không đạt ở tất cả các lần thi).
 select HO+' '+TEN
 from HOCVIEN, LOP, KETQUATHI
 where
@@ -635,7 +640,7 @@ group by TRGLOP, HO, TEN
 having count(*) > 3
 
 -- Cau 26 - 35
--- Cau 26
+-- Cau 26. Tìm học viên (mã học viên, họ tên) có số môn đạt điểm 9,10 nhiều nhất.
 select top 1 with ties HOCVIEN.MAHV, (HO+' '+TEN) as HOTEN
 from HOCVIEN, KETQUATHI
 where
@@ -643,7 +648,7 @@ where
 	and DIEM >= 9
 group by HOCVIEN.MAHV, HO, TEN
 order by count(*) desc
--- Cau 27
+-- Cau 27. Trong từng lớp, tìm học viên (mã học viên, họ tên) có số môn đạt điểm 9,10 nhiều nhất.
 select MALOP, MAHV, HO,TEN
 from (
 	select  MALOP, HOCVIEN.MAHV, HO,TEN, COUNT(*) SOLUONGDIEM, 
@@ -660,11 +665,11 @@ from (
 	group by MALOP, HOCVIEN.MAHV, HO, TEN
 ) as A
 where A.XEPHANG = 1
--- Cau 28
+-- Cau 28. Trong từng học kỳ của từng năm, mỗi giáo viên phân công dạy bao nhiêu môn học, bao nhiêu lớp.
 select HOCKY, NAM, MAGV, count(distinct MAMH) 'Số lượng môn giảng dạy', count(distinct MALOP) 'Số lượng lớp giảng dạy'
 from GIANGDAY
 group by NAM, HOCKY, MAGV
--- Cau 29
+-- Cau 29. Trong từng học kỳ của từng năm, tìm giáo viên (mã giáo viên, họ tên) giảng dạy nhiều nhất.
 select HOCKY, NAM, A.MAGV, HOTEN
 from GIAOVIEN, (
 	select HOCKY, NAM, MAGV, rank() over 
@@ -679,7 +684,7 @@ where
 	A.MAGV = GIAOVIEN.MAGV
 	and XEPHANG = 1
 order by NAM, HOCKY
--- Cau 30
+-- Cau 30. Tìm môn học (mã môn học, tên môn học) có nhiều học viên thi không đạt (ở lần thi thứ 1) nhất.
 select MONHOC.MAMH, TENMH
 from MONHOC, KETQUATHI
 where 
@@ -697,7 +702,7 @@ having
 		and KQUA = 'Khong Dat'
 	group by MAMH
 	) 
--- Cau 31
+-- Cau 31. Tìm học viên (mã học viên, họ tên) thi môn nào cũng đạt (chỉ xét lần thi thứ 1).
 select distinct HOCVIEN.MAHV, (HO +' '+TEN) HOTEN
 from HOCVIEN, KETQUATHI
 where 	
@@ -711,7 +716,7 @@ where
 			and LANTHI = 1
 			and MAHV = HOCVIEN.MAHV
 		)
--- Cau 32
+-- Cau 32. * Tìm học viên (mã học viên, họ tên) thi môn nào cũng đạt (chỉ xét lần thi sau cùng).
 select distinct HOCVIEN.MAHV, (HO +' '+TEN) HOTEN
 from HOCVIEN, KETQUATHI
 where 	
@@ -731,7 +736,7 @@ where
 				)
 			and MAHV = HOCVIEN.MAHV
 		)
--- Cau 33
+-- Cau 33. * Tìm học viên (mã học viên, họ tên) đã thi tất cả các môn đều đạt (chỉ xét lần thi thứ 1).
 select MAHV, (HO+' '+TEN) HOTEN
 from HOCVIEN
 where not exists
@@ -749,7 +754,7 @@ where not exists
 					and KQUA = 'Dat'
 			)
 	)
--- Cau 34
+-- Cau 34. * Tìm học viên (mã học viên, họ tên) đã thi tất cả các môn đều đạt (chỉ xét lần thi sau cùng).
 select MAHV, (HO+' '+TEN) HOTEN
 from HOCVIEN
 where not exists
@@ -775,7 +780,7 @@ where not exists
 					and KQUA = 'Dat'
 			)
 	)
--- Cau 35
+-- Cau 35. ** Tìm học viên (mã học viên, họ tên) có điểm thi cao nhất trong từng môn (lấy điểm ở lần thi sau cùng).
 select MAMH, MAHV, HOTEN
 from 
 	(
@@ -795,3 +800,303 @@ from
 	group by MAMH, HOCVIEN.MAHV, HO, TEN
 	) as A
 where A.XEPHANG = 1
+
+-- Tuan 5
+-- Phan 1 Cau 9 - 10, 15 - 24
+-- Cau 9. Lớp trưởng của một lớp phải là học viên của lớp đó.
+-- Them, sua lop truong
+create trigger trg_ins_upd_TRGLOP
+on LOP
+for insert, update
+as
+begin
+	declare @TRGLOP char(5), 
+			@MALOP char(3), 
+			@MALOPTRGLOP char(3)
+	select @TRGLOP = TRGLOP, @MALOPTRGLOP = MALOP
+	from inserted 
+	select @MALOP = MALOP
+	from HOCVIEN
+	where @TRGLOP = MAHV
+
+	if (@MALOP <> @MALOPTRGLOP)
+		begin
+			print 'Lop truong khong phai thanh vien cua lop'
+			rollback transaction
+		end
+end
+
+-- Cau 10. Trưởng khoa phải là giáo viên thuộc khoa và có học vị “TS” hoặc “PTS”.
+create trigger trg_ins_upd_TRGKHOA
+on KHOA
+for insert, update
+as
+begin
+	declare @makhoa_trgkhoa char(4), 
+			@trgkhoa char(4), 
+			@makhoa varchar(4),
+			@hocvi varchar(10)
+
+	select @trgkhoa = TRGKHOA, @makhoa_trgkhoa = MAKHOA
+	from inserted
+
+	select @makhoa = MAKHOA, @hocvi = HOCVI
+	from GIAOVIEN
+	where @trgkhoa = MAGV
+
+	if((@makhoa <> @makhoa_trgkhoa) and (@hocvi not in('TS','pts')))
+	begin
+		print 'Truong khoa khong thuoc khoa hoac khong co hoc vi ts, pts'
+		rollback transaction
+	end
+end
+
+-- Cau 15 . Học viên chỉ được thi một môn học nào đó khi lớp của học viên đã học xong môn học này.
+create trigger trg_ins_upd_KQT_HOCVIEN
+on KETQUATHI
+for insert, update
+as 
+begin
+	declare @ngthi smalldatetime,
+			@ngkt smalldatetime
+	
+	select @ngthi = NGTHI, @ngkt = DENNGAY
+	from inserted i, HOCVIEN hv, GIANGDAY gd
+	where 
+		i.MAHV = hv.MAHV
+		and hv.MALOP = gd.MALOP
+		and i.MAMH = gd.MAMH
+	if (@ngthi < @ngkt)
+	begin
+		print 'Ngay thi khong the be hon ngay ket thuc mon'
+		rollback transaction
+	end
+end
+
+-- Cau 16. Mỗi học kỳ của một năm học, một lớp chỉ được học tối đa 3 môn
+create trigger trg_ins_upd_MAXMON
+on GIANGDAY
+for insert, update
+as
+begin
+	declare @count_mon tinyint
+	select @count_mon = count(gd.MAMH)
+	from GIANGDAY gd, inserted i
+	where 
+		gd.HOCKY = i.HOCKY
+		and gd.NAM = i.NAM
+		and gd.MALOP = i.MALOP
+	
+	if (@count_mon > 3)
+	begin
+		print 'Chi duoc toi da 3 mon hoc'
+		rollback transaction
+	end
+end
+
+-- Cau 17. Sỉ số của một lớp bằng với số lượng học viên thuộc lớp đó.
+create trigger trg_ins_upd_CHECK_SL_HV
+on LOP
+for insert, update
+as
+begin
+	declare @count_hv tinyint, 
+			@siso tinyint
+	
+	select @count_hv = count(hv.MAHV)
+	from HOCVIEN hv, inserted i
+	where 
+		hv.MALOP = i.MALOP
+	
+	select @siso = SISO
+	from LOP
+	if (@count_hv <> @siso)
+	begin
+		print 'So hoc vien khac voi si so'
+		rollback transaction
+	end
+end
+
+-- Cau 18. Trong quan hệ DIEUKIEN giá trị của thuộc tính MAMH và MAMH_TRUOC trong cùng một bộ không được giống nhau (“A”,”A”) và cũng không tồn tại hai bộ (“A”,”B”) và (“B”,”A”).
+create trigger trg_ins_upd_DIEUKIENMONHOC
+on DIEUKIEN
+for insert, update
+as 
+begin
+	declare @mamh varchar(10),
+			@mamh_truoc varchar(10)
+	
+	select @mamh = MAMH, @mamh_truoc = MAMH_TRUOC
+	from inserted
+	if (@mamh_truoc = @mamh)
+		or (@mamh in (
+			select MAMH_TRUOC
+			from DIEUKIEN
+			where MAMH_TRUOC = @mamh
+		))
+		or (@mamh_truoc in (
+			select MAMH
+			from DIEUKIEN
+			where  MAMH = @mamh_truoc
+		))
+	begin
+		print 'Sai nhe'
+		rollback transaction
+	end
+end
+-- Cau 19. Các giáo viên có cùng học vị, học hàm, hệ số lương thì mức lương bằng nhau.
+create trigger trg_ins_upd_SSGV
+on GIAOVIEN
+for insert, update
+as
+begin
+	declare @mucluong money,
+			@magv varchar(4)
+		
+	select @mucluong = gv.MUCLUONG, @magv = i.MAGV
+	from GIAOVIEN gv, inserted i
+	where 
+		gv.HOCHAM = i.HOCHAM
+		and gv.HOCVI = i.HOCVI
+		and gv.HESO = i.HESO
+		and gv.MAGV <> i.MAGV
+	begin
+		update GIAOVIEN
+		set MUCLUONG = @mucluong
+		where MAGV = @magv
+	end
+end
+-- Cau 20. Học viên chỉ được thi lại (lần thi >1) khi điểm của lần thi trước đó dưới 5.
+create trigger trg_ins_upd_CHECKTHILAI
+on KETQUATHI
+for insert, update
+as
+begin
+	declare @lanthi tinyint, 
+			@diemthi numeric(4,2)
+
+	select @lanthi = LANTHI
+	from inserted
+
+	if (@lanthi > 1) 
+	begin
+		select @diemthi = kq.DIEM
+		from KETQUATHI kq, inserted i
+		where
+			kq.MAHV = i.MAHV
+			and kq.MAMH = i.MAMH
+			and kq.LANTHI = @lanthi - 1
+
+		if (@diemthi >= 5)
+		begin
+			print 'SV da dau'
+			rollback transaction
+		end
+	end
+end
+
+-- Cau 21. Ngày thi của lần thi sau phải lớn hơn ngày thi của lần thi trước (cùng học viên, cùng môn học).
+create trigger trg_ins_upd_CHECKNGTHI
+on KETQUATHI
+for insert, update
+as
+begin
+	declare @ngthi1 smalldatetime,
+			@ngthi2 smalldatetime,
+			@lanthi1 tinyint,
+			@lanthi2 tinyint
+			@mamh char(10),
+			@mahv char(5)
+	select  @mamh = MAMH, 
+			@mahv = MAHV, 
+			@ngthi2 = NGTHI, 
+			@lanthi2 = LANTHI
+	from inserted
+
+	select @ngthi1 = NGTHI, @lanthi1 = LANTHI
+	from KETQUATHI
+	where 
+		@mahv = MAHV
+		and @mamh = MAMH
+		and @lanthi1 = @lanthi2 - 1
+	
+	if (@ngthi2 < ngthi1)
+	begin
+		print 'Ngay thi chua hop le'
+		rollback transaction
+	end 		
+end
+
+-- Cau 22. Học viên chỉ được thi những môn mà lớp của học viên đó đã học xong.
+create trigger trg_ins_upd_THIHOCXONG
+on KETQUATHI
+for insert, update
+as
+begin
+	declare @ngthi smalldatetime,
+			@denngay smalldatetime
+	
+	select @ngthi = NGTHI, @denngay = DENNGAY
+	from HOCVIEN hv, inserted i, GIANGDAY gd
+	where
+		hv.MAHV = i.MAHV
+		and i.MAMH = gd.MAMH
+		and hv.MALOP = gd.MALOP
+	if (@ngthi < @denngay) 
+	begin
+		print 'Chua hoc xong'
+		rollback transaction
+	end 
+end
+
+-- Cau 23. . Khi phân công giảng dạy một môn học, phải xét đến thứ tự trước sau giữa các môn học (sau khi học xong những môn học phải học trước mới được học những môn liền sau).
+create trigger trg_ins_upd_PHANMON_DK
+on GIANGDAY
+for insert, update
+as
+begin
+	declare @mamh char(10),
+			@mamh_truoc char(10),
+			@mamh_gd char(10),
+			@malop char(3)
+	select @malop = MALOP, @mamh = MAMH
+	from inserted
+	-- MAMH truoc cua @mamh
+	select @mamh_truoc = MAMH_TRUOC
+	from DIEUKIEN
+	where
+		@mamh = MAMH
+	-- MAMH giang day
+	select @mamh_gd = MAMH
+	from GIANGDAY
+	where 
+		@malop = MALOP
+	
+	if (@mamh_truoc <> @mamh_gd)
+	begin
+		print 'Chua duoc day mon nay'
+		rollback transaction
+	end	
+end
+
+-- Cau 24 . Giáo viên chỉ được phân công dạy những môn thuộc khoa giáo viên đó phụ trách.
+create trigger trg_ins_upd_PHANCONGMONTHUOCKHOA
+on GIANGDAY
+for insert, update
+as
+begin
+	declare	@makhoa_mon varchar(4), 
+			@makhoa_gv varchar(4)
+
+	select @makhoa_mon = mon.MAKHOA, @makhoa_gv = gv.MAKHOA
+	from inserted i, MONHOC mon, GIAOVIEN gv
+	where	
+		i.MAMH = mon.MAMH 
+		and i.MAGV = gv.MAGV
+
+	if(@makhoa_mon <> @makhoa_gv)
+	begin
+		print 'Giao vien khong duoc day mon nay'
+		rollback transaction
+	end
+end
